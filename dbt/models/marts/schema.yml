@@ -1,0 +1,83 @@
+version: 2
+
+models:
+  - name: mart_rfm_segments
+    description: >
+      Customer RFM segments with NTILE-based R/F/M scores and labelled segments.
+      Airflow writes customer_segment back to users after dbt run completes.
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+          - unique
+      - name: customer_segment
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - 'Champions'
+                - 'Loyal Customers'
+                - 'Potential Loyalists'
+                - 'New Customers'
+                - 'Promising'
+                - 'Need Attention'
+                - 'At Risk'
+                - 'Cannot Lose Them'
+                - 'About to Sleep'
+                - 'Hibernating'
+                - 'Lost'
+                - 'Other'
+      - name: recency_days
+        tests:
+          - not_null
+      - name: frequency
+        tests:
+          - not_null
+
+  - name: mart_churn_features
+    description: >
+      Seven engineered features fed to the XGBoost churn model.
+      Centralising feature logic here means train_model.py and the
+      API both derive features from the same definitions.
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+          - unique
+      - name: recency_days
+        tests:
+          - not_null
+      - name: frequency
+        tests:
+          - not_null
+      - name: monetary
+        tests:
+          - not_null
+      - name: avg_order_value
+        tests:
+          - not_null
+      - name: tenure_days
+        tests:
+          - not_null
+      - name: purchase_velocity
+        tests:
+          - not_null
+      - name: recency_ratio
+        tests:
+          - not_null
+
+  - name: mart_daily_snapshot
+    description: >
+      Daily revenue KPIs — one row per calendar day.
+      Airflow upserts yesterday's row into daily_report_log at 2 AM.
+    columns:
+      - name: report_date
+        tests:
+          - not_null
+          - unique
+      - name: total_revenue
+        tests:
+          - not_null
+      - name: total_transactions
+        tests:
+          - not_null

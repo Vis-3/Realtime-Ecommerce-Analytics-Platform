@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: ecommerce-analytics-api
+    runtime: python
+    buildCommand: pip install -r requirements_api.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false          # set manually in Render dashboard → Neon connection string
+      - key: REDIS_URL
+        sync: false          # set manually in Render dashboard → Upstash connection string
+      - key: MODEL_PATH
+        value: /tmp

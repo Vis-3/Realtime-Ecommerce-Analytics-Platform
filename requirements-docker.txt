@@ -1,0 +1,14 @@
+# ============================================================
+# DOCKER SERVICES — used inside containers, not locally
+# These are Linux-only and cannot be installed on Windows.
+# ============================================================
+
+# Airflow (runs in airflow container)
+apache-airflow==2.7.3
+apache-airflow-providers-postgres==5.7.1
+
+# Spark (runs in spark container)
+pyspark==3.5.0
+
+# confluent-kafka (Linux build; use kafka-python locally instead)
+confluent-kafka==2.3.0

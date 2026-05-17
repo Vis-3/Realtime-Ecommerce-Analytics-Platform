@@ -1,0 +1,9 @@
+# Streamlit dashboard — Streamlit Cloud deployment
+# Install with: pip install -r requirements_dashboard.txt
+
+streamlit==1.29.0
+streamlit-autorefresh==1.0.1
+plotly==5.18.0
+pandas==2.1.4
+numpy==1.26.2
+requests==2.31.0

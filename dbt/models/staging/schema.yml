@@ -1,0 +1,53 @@
+version: 2
+
+sources:
+  - name: ecommerce
+    description: "Raw operational tables in the ecommerce Postgres database"
+    schema: public
+    tables:
+      - name: transactions
+        description: "Partitioned fact table — all purchase events"
+      - name: users
+        description: "Customer dimension with persona and segment labels"
+      - name: products
+        description: "Product catalog"
+
+models:
+  - name: stg_transactions
+    description: >
+      Typed and filtered view of raw transactions. Casts transaction_date
+      to DATE and removes any row with a null user or negative amount.
+      All downstream models reference this view, never the raw table.
+    columns:
+      - name: transaction_id
+        description: "Globally unique transaction identifier (BIGSERIAL)"
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: "Foreign key to users"
+        tests:
+          - not_null
+      - name: total_amount
+        description: "Non-negative transaction value in USD"
+        tests:
+          - not_null
+      - name: transaction_date
+        description: "Purchase date (cast from TIMESTAMP to DATE)"
+        tests:
+          - not_null
+
+  - name: stg_users
+    description: "Cleaned users dimension — filters rows with null user_id"
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+          - unique
+      - name: email
+        tests:
+          - not_null
+      - name: persona
+        tests:
+          - accepted_values:
+              values: ['Champion', 'Loyal', 'New', 'Hibernating', 'AtRisk']

@@ -1,0 +1,283 @@
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL — mapped to 5433 on the host to avoid conflict with any local
+  # Postgres installation running on the default 5432.
+  # schema.sql and seed_data.sql run automatically on first startup via
+  # docker-entrypoint-initdb.d.  seed_transactions.py is run by the `seeder`
+  # service below.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15
+    container_name: ecommerce_postgres
+    environment:
+      POSTGRES_DB:       ecommerce
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../database/postgres:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------------------------
+  # Redis — cache layer for the API
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Seeder — runs seed_transactions.py once after Postgres is ready.
+  # Generates ~162K persona-driven transactions using Weibull distributions
+  # calibrated against the UCI Online Retail dataset.
+  # Exits with code 0 when done; restart: "no" prevents re-running.
+  # ---------------------------------------------------------------------------
+  seeder:
+    image: python:3.12-slim
+    container_name: ecommerce_seeder
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       ecommerce
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ../database/postgres:/app
+    working_dir: /app
+    command: >
+      bash -c "
+        pip install psycopg2-binary numpy scipy --quiet --no-cache-dir &&
+        python seed_transactions.py
+      "
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # API — FastAPI + XGBoost churn model
+  # Connects to the postgres and redis services by hostname.
+  # The models/ directory is mounted so the trained churn_model.pkl is
+  # available without rebuilding the image on every retrain.
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    container_name: ecommerce_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      seeder:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       ecommerce
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      REDIS_HOST:        redis
+      REDIS_PORT:        6379
+      MODEL_PATH:        /app/models
+      GROWTHBOOK_API_HOST:   http://growthbook:3100
+      GROWTHBOOK_CLIENT_KEY: sdk-LWXIErRv5R2Q0ytF
+    volumes:
+      - ../models:/app/models
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Dashboard — Streamlit
+  # Reads API_BASE_URL so it points to the api container, not localhost.
+  # ---------------------------------------------------------------------------
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: ecommerce_dashboard
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "8501:8501"
+
+  # ---------------------------------------------------------------------------
+  # MongoDB — metadata store required by GrowthBook
+  # ---------------------------------------------------------------------------
+  mongo:
+    image: mongo:6
+    container_name: ecommerce_mongo
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # GrowthBook — open-source A/B testing and feature flagging
+  # UI:  http://localhost:3000   (create account on first visit)
+  # SDK: http://localhost:3100   (used by FastAPI via growthbook Python SDK)
+  #
+  # WHY: The churn model scores users but doesn't reduce churn.  GrowthBook
+  # manages the discount experiment (50/50 split), tracks assignments in
+  # Postgres, and computes statistical significance from ab_experiment_metrics.
+  # ---------------------------------------------------------------------------
+  growthbook:
+    image: growthbook/growthbook:latest
+    container_name: ecommerce_growthbook
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+      - "3100:3100"
+    environment:
+      MONGODB_URI:     mongodb://mongo:27017/growthbook
+      APP_ORIGIN:      http://localhost:3000
+      API_HOST:        http://localhost:3100
+      JWT_SECRET:      "ecommerce-ab-testing-jwt-secret"
+      ENCRYPTION_KEY:  "ecommerce-encrypt-key-32chars!!"
+
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage (free, self-hosted)
+  # Console: http://localhost:9001  login: minioadmin / minioadmin
+  # API:     http://localhost:9000
+  #
+  # WHY: Postgres is an OLTP database, not designed for large sequential scans.
+  # Exporting daily snapshots here as Parquet decouples the Spark compute layer
+  # from the operational database.  Spark reads from MinIO, never from Postgres.
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: ecommerce_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER:     minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Spark — PySpark cohort retention job
+  # Reads transactions Parquet from MinIO, computes monthly cohort retention
+  # (% of users from each cohort still purchasing N months later), writes the
+  # aggregated result to cohort_retention table in Postgres.
+  #
+  # Uses Docker Compose profiles so it does NOT start with the main stack.
+  # Run on demand after export_to_minio_dag completes:
+  #   docker compose --profile spark run --rm spark
+  # ---------------------------------------------------------------------------
+  spark:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.spark
+    container_name: ecommerce_spark
+    profiles:
+      - spark
+    depends_on:
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      MINIO_HOST:        minio:9000
+      MINIO_ACCESS_KEY:  minioadmin
+      MINIO_SECRET_KEY:  minioadmin
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     "5432"
+      POSTGRES_DB:       ecommerce
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+
+  # ---------------------------------------------------------------------------
+  # Airflow — single-node (LocalExecutor), shares the postgres service for
+  # its own metadata DB (airflow schema) and connects to ecommerce DB via
+  # the ecommerce_postgres connection registered at startup.
+  # UI: http://localhost:8080  login: admin / admin
+  # ---------------------------------------------------------------------------
+  airflow:
+    image: apache/airflow:2.7.3-python3.10
+    container_name: ecommerce_airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: "7WcMD7NRXW-bqBpFpZiRSGZJmjfOEqBb5fGCEGdO7Ws="
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__API__AUTH_BACKENDS: "airflow.api.auth.backend.basic_auth"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "ecommerce-analytics-secret"
+      # Pre-register the ecommerce Postgres connection so DAGs can use it
+      AIRFLOW_CONN_ECOMMERCE_POSTGRES: "postgres://postgres:postgres@postgres:5432/ecommerce"
+      # dbt reads these to build its Postgres connection (profiles.yml uses env_var())
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     "5432"
+      POSTGRES_DB:       ecommerce
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      # Install dbt on container start (no custom image needed)
+      _PIP_ADDITIONAL_REQUIREMENTS: "dbt-core==1.7.4 dbt-postgres==1.7.4 minio==7.2.0 pyarrow==14.0.1"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../airflow/dags:/opt/airflow/dags
+      - ../dbt:/opt/airflow/dbt
+      - airflow_logs:/opt/airflow/logs
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow users create
+          --username admin --password admin
+          --firstname Admin --lastname User
+          --role Admin --email admin@example.com || true &&
+        airflow webserver &
+        airflow scheduler
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  airflow_logs:
+  minio_data:
+  mongo_data:

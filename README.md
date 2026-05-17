@@ -21,27 +21,34 @@
 
 ### Live Dashboard
 <!-- SCREENSHOT: Full dashboard overview page showing KPI tiles, revenue trend chart, and geo map -->
-> *Place screenshot here: `docs/screenshots/dashboard_overview.png`*
+<img width="1919" height="900" alt="image" src="https://github.com/user-attachments/assets/a7023225-cde1-4c0c-ade3-f65767dba6a8" />
+<img width="1910" height="856" alt="image" src="https://github.com/user-attachments/assets/f3ce523c-a464-41de-a6a5-ae185e32fb4e" />
+
 
 ### Customer Analytics — RFM Segments & Churn Leaderboard
 <!-- SCREENSHOT: Customer page with segment radar chart, RFM distribution, and churn risk table -->
-> *Place screenshot here: `docs/screenshots/customer_analytics.png`*
+<img width="1918" height="850" alt="image" src="https://github.com/user-attachments/assets/a09b5f2d-6ca4-48af-98d4-efe890646f2e" />
+<img width="1919" height="657" alt="image" src="https://github.com/user-attachments/assets/0647fce9-824e-4e35-9ef7-17b5b3c99f8a" />
+<img width="1862" height="791" alt="image" src="https://github.com/user-attachments/assets/e3a3b5d9-1b79-4407-b879-f11427516c6f" />
+
 
 ### A/B Testing — GrowthBook Experiment Dashboard
 <!-- SCREENSHOT: GrowthBook UI showing churn-discount-v1 experiment with 50/50 split and conversion metrics -->
-> *Place screenshot here: `docs/screenshots/growthbook_experiment.png`*
+<img width="1605" height="908" alt="image" src="https://github.com/user-attachments/assets/cf75b09c-0ad2-4cc6-a2a2-80f2cb0c37f4" />
+
 
 ### Airflow DAG Graph
 <!-- SCREENSHOT: Airflow UI showing daily_analytics_dag with all task nodes and dependencies -->
-> *Place screenshot here: `docs/screenshots/airflow_dag.png`*
+<img width="1919" height="887" alt="image" src="https://github.com/user-attachments/assets/1c9a37ac-0de6-4e65-94b5-2903ad17a6f7" />
+<img width="1354" height="277" alt="image" src="https://github.com/user-attachments/assets/afc8f8aa-afb9-49c9-9eec-16507e8563cf" />
+
 
 ### dbt Lineage Graph
 <!-- SCREENSHOT: `dbt docs serve` lineage graph showing sources → staging → intermediate → marts -->
-> *Place screenshot here: `docs/screenshots/dbt_lineage.png`*
+<img width="1842" height="781" alt="image" src="https://github.com/user-attachments/assets/7e0aad1a-7b17-45e2-a023-5562d8cfedfc" />
 
-### FastAPI Swagger UI
-<!-- SCREENSHOT: /docs page showing all 25+ endpoint groups -->
-> *Place screenshot here: `docs/screenshots/api_docs.png`*
+
+
 
 ---
 

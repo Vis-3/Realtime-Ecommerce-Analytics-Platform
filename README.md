@@ -21,31 +21,35 @@
 
 ### Live Dashboard
 <!-- SCREENSHOT: Full dashboard overview page showing KPI tiles, revenue trend chart, and geo map -->
-<img width="1919" height="900" alt="image" src="https://github.com/user-attachments/assets/a7023225-cde1-4c0c-ade3-f65767dba6a8" />
-<img width="1910" height="856" alt="image" src="https://github.com/user-attachments/assets/f3ce523c-a464-41de-a6a5-ae185e32fb4e" />
+<img width="1919" height="894" alt="image" src="https://github.com/user-attachments/assets/8849a27d-4a27-442f-80c9-a08549ee6cc9" />
+<img width="1916" height="900" alt="image" src="https://github.com/user-attachments/assets/1fc65be0-a03e-4689-a585-710cf60e4305" />
+
 
 
 ### Customer Analytics — RFM Segments & Churn Leaderboard
 <!-- SCREENSHOT: Customer page with segment radar chart, RFM distribution, and churn risk table -->
-<img width="1918" height="850" alt="image" src="https://github.com/user-attachments/assets/a09b5f2d-6ca4-48af-98d4-efe890646f2e" />
-<img width="1919" height="657" alt="image" src="https://github.com/user-attachments/assets/0647fce9-824e-4e35-9ef7-17b5b3c99f8a" />
-<img width="1862" height="791" alt="image" src="https://github.com/user-attachments/assets/e3a3b5d9-1b79-4407-b879-f11427516c6f" />
+<img width="1919" height="894" alt="image" src="https://github.com/user-attachments/assets/5ab012bd-a824-4f6e-b3d7-b48aa36ee304" />
+<img width="1919" height="903" alt="image" src="https://github.com/user-attachments/assets/bce4d571-8639-4669-a38e-9203dbea4c32" />
+<img width="1919" height="907" alt="image" src="https://github.com/user-attachments/assets/ac5c2be3-2475-4d52-8ed7-146e26244c1f" />
 
 
 ### A/B Testing — GrowthBook Experiment Dashboard
 <!-- SCREENSHOT: GrowthBook UI showing churn-discount-v1 experiment with 50/50 split and conversion metrics -->
-<img width="1605" height="908" alt="image" src="https://github.com/user-attachments/assets/cf75b09c-0ad2-4cc6-a2a2-80f2cb0c37f4" />
+<img width="1918" height="874" alt="image" src="https://github.com/user-attachments/assets/758fa5cd-43e2-4148-8fd9-067aa0a7afe6" />
+
 
 
 ### Airflow DAG Graph
 <!-- SCREENSHOT: Airflow UI showing daily_analytics_dag with all task nodes and dependencies -->
-<img width="1919" height="887" alt="image" src="https://github.com/user-attachments/assets/1c9a37ac-0de6-4e65-94b5-2903ad17a6f7" />
-<img width="1354" height="277" alt="image" src="https://github.com/user-attachments/assets/afc8f8aa-afb9-49c9-9eec-16507e8563cf" />
+<img width="1857" height="721" alt="image" src="https://github.com/user-attachments/assets/2f9f0101-e637-414b-8586-18a960220d5a" />
+<img width="1393" height="204" alt="image" src="https://github.com/user-attachments/assets/549d6914-3c4e-4c6a-8405-42e8cf1c5cc8" />
+
 
 
 ### dbt Lineage Graph
 <!-- SCREENSHOT: `dbt docs serve` lineage graph showing sources → staging → intermediate → marts -->
-<img width="1842" height="781" alt="image" src="https://github.com/user-attachments/assets/7e0aad1a-7b17-45e2-a023-5562d8cfedfc" />
+<img width="1839" height="778" alt="image" src="https://github.com/user-attachments/assets/2b8fbd5a-a60b-439b-936b-48435c4c70ed" />
+
 
 
 
